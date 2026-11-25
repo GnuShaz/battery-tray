@@ -1,7 +1,7 @@
 export struct Row { name: string, meta: string, kind: int, percent: int, color: color, charging: bool, pinned: bool }
 
 component DeviceItem inherits Rectangle {
-    in property <Row> row;
+    in property <Row> item;
     in property <int> index;
     in property <bool> shown;
     callback pin();
@@ -21,21 +21,21 @@ component DeviceItem inherits Rectangle {
                 width: 40px; height: 40px; border-radius: 8px; background: #ffffff12;
                 Image {
                     width: 22px; height: 22px;
-                    source: row.kind == 0 ? @image-url("../assets/mouse.svg")
-                        : row.kind == 1 ? @image-url("../assets/keyboard.svg")
-                        : row.kind == 2 ? @image-url("../assets/headphones.svg")
-                        : row.kind == 3 ? @image-url("../assets/gamepad-2.svg")
+                    source: item.kind == 0 ? @image-url("../assets/mouse.svg")
+                        : item.kind == 1 ? @image-url("../assets/keyboard.svg")
+                        : item.kind == 2 ? @image-url("../assets/headphones.svg")
+                        : item.kind == 3 ? @image-url("../assets/gamepad-2.svg")
                         : @image-url("../assets/bluetooth.svg");
-                    colorize: row.color;
+                    colorize: item.color;
                 }
             }
             VerticalLayout {
                 alignment: center;
-                Text { text: row.name; color: #ffffff; font-size: 14px; font-weight: 500; }
-                Text { text: row.meta; color: #c4c4c4; font-size: 12px; }
+                Text { text: item.name; color: #ffffff; font-size: 14px; font-weight: 500; }
+                Text { text: item.meta; color: #c4c4c4; font-size: 12px; }
             }
             Text {
-                text: Math.round(row.percent * t) + "%";
+                text: Math.round(item.percent * t) + "%";
                 color: #ffffff; font-size: 20px; font-weight: 600;
                 width: 64px; horizontal-alignment: right; vertical-alignment: center;
             }
@@ -43,8 +43,8 @@ component DeviceItem inherits Rectangle {
                 width: 28px;
                 Rectangle {
                     width: 28px; height: 28px; border-radius: 6px;
-                    background: pin-touch.has-hover ? #ffffff1f : (row.pinned ? #ffffff14 : transparent);
-                    Image { width: 16px; height: 16px; source: @image-url("../assets/pin.svg"); colorize: row.pinned ? #ffffff : #8a8a8a; }
+                    background: pin-touch.has-hover ? #ffffff1f : (item.pinned ? #ffffff14 : transparent);
+                    Image { width: 16px; height: 16px; source: @image-url("../assets/pin.svg"); colorize: item.pinned ? #ffffff : #8a8a8a; }
                     pin-touch := TouchArea { clicked => { root.pin(); } }
                 }
             }
@@ -57,8 +57,8 @@ component DeviceItem inherits Rectangle {
                 background: #ffffff24;
                 border-radius: 1px;
                 Rectangle {
-                    x: 0px; height: parent.height; border-radius: 1px; background: row.color;
-                    width: parent.width * Math.clamp((row.percent * t - s * 10) / 10, 0.0, 1.0);
+                    x: 0px; height: parent.height; border-radius: 1px; background: item.color;
+                    width: parent.width * Math.clamp((item.percent * t - s * 10) / 10, 0.0, 1.0);
                 }
             }
         }
@@ -116,15 +116,15 @@ export component TrayPopup inherits Window {
                         background: refresh-touch.has-hover ? #ffffff14 : transparent;
                         Image {
                             width: 18px; height: 18px; source: @image-url("../assets/refresh-cw.svg"); colorize: #ffffff;
-                            rotation-angle: root.spin-count * 360deg;
-                            animate rotation-angle { duration: 800ms; easing: cubic-bezier(0.5, 0, 0.2, 1); }
+                            transform-rotation: root.spin-count * 360deg;
+                            animate transform-rotation { duration: 800ms; easing: cubic-bezier(0.5, 0, 0.2, 1); }
                         }
                         refresh-touch := TouchArea { clicked => { root.refresh(); } }
                     }
                 }
             }
             for r[i] in root.rows: DeviceItem {
-                row: r; index: i; shown: root.shown;
+                item: r; index: i; shown: root.shown;
                 pin => { root.pin(i); }
             }
             HorizontalLayout {

@@ -31,7 +31,7 @@ fn digits(pm: &mut Pixmap, value: u8, small: bool) {
     let text = value.min(100).to_string();
     let k = if small || text.len() >= 3 { 2 } else { 3 };
     let n = text.len() as i32;
-    let width = n * 3 * k + (n - 1) * k;
+    let width = n * 3 * k + (n - 1);
     let mut x = (SIZE as i32 - width) / 2;
     let y = if small { 21 } else { (SIZE as i32 - 5 * k) / 2 };
     for ch in text.bytes() {
@@ -43,15 +43,15 @@ fn digits(pm: &mut Pixmap, value: u8, small: bool) {
                 }
             }
         }
-        x += 4 * k;
+        x += 3 * k + 1;
     }
 }
 
 /// Кольцо: дуга по часовой от верхней точки, как в дизайне.
 pub fn summary(percent: u8, level: Level) -> Pixmap {
     let mut pm = Pixmap::new(SIZE, SIZE).unwrap();
-    let (c, r) = (SIZE as f32 / 2.0, 13.0_f32);
-    let stroke = Stroke { width: 3.5, line_cap: LineCap::Round, ..Stroke::default() };
+    let (c, r) = (SIZE as f32 / 2.0, 14.0_f32);
+    let stroke = Stroke { width: 3.0, line_cap: LineCap::Round, ..Stroke::default() };
     let track = PathBuilder::from_circle(c, c, r).unwrap();
     pm.stroke_path(&track, &paint([255; 3], 56), &stroke, Transform::identity(), None);
     if percent > 0 {
