@@ -1,0 +1,156 @@
+export struct Row { name: string, meta: string, kind: int, percent: int, color: color, charging: bool, pinned: bool }
+
+component DeviceItem inherits Rectangle {
+    in property <Row> row;
+    in property <int> index;
+    in property <bool> shown;
+    callback pin();
+    // 0 -> 1 при открытии: двигает сегменты и число, у каждой строки своя задержка.
+    property <float> t: shown ? 1.0 : 0.0;
+    animate t { duration: 1000ms; delay: 260ms + index * 110ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    height: 78px;
+    border-radius: 6px;
+    background: hover.has-hover ? #ffffff0d : transparent;
+    hover := TouchArea { }
+    VerticalLayout {
+        padding: 10px;
+        spacing: 10px;
+        HorizontalLayout {
+            spacing: 12px;
+            Rectangle {
+                width: 40px; height: 40px; border-radius: 8px; background: #ffffff12;
+                Image {
+                    width: 22px; height: 22px;
+                    source: row.kind == 0 ? @image-url("../assets/mouse.svg")
+                        : row.kind == 1 ? @image-url("../assets/keyboard.svg")
+                        : row.kind == 2 ? @image-url("../assets/headphones.svg")
+                        : row.kind == 3 ? @image-url("../assets/gamepad-2.svg")
+                        : @image-url("../assets/bluetooth.svg");
+                    colorize: row.color;
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Text { text: row.name; color: #ffffff; font-size: 14px; font-weight: 500; }
+                Text { text: row.meta; color: #c4c4c4; font-size: 12px; }
+            }
+            Text {
+                text: Math.round(row.percent * t) + "%";
+                color: #ffffff; font-size: 20px; font-weight: 600;
+                width: 64px; horizontal-alignment: right; vertical-alignment: center;
+            }
+            Rectangle {
+                width: 28px;
+                Rectangle {
+                    width: 28px; height: 28px; border-radius: 6px;
+                    background: pin-touch.has-hover ? #ffffff1f : (row.pinned ? #ffffff14 : transparent);
+                    Image { width: 16px; height: 16px; source: @image-url("../assets/pin.svg"); colorize: row.pinned ? #ffffff : #8a8a8a; }
+                    pin-touch := TouchArea { clicked => { root.pin(); } }
+                }
+            }
+        }
+        // 10 сегментов, заполняются слева направо вместе с t
+        HorizontalLayout {
+            height: 8px;
+            spacing: 3px;
+            for s in 10: Rectangle {
+                background: #ffffff24;
+                border-radius: 1px;
+                Rectangle {
+                    x: 0px; height: parent.height; border-radius: 1px; background: row.color;
+                    width: parent.width * Math.clamp((row.percent * t - s * 10) / 10, 0.0, 1.0);
+                }
+            }
+        }
+    }
+}
+
+export component TrayPopup inherits Window {
+    in property <[Row]> rows;
+    in property <bool> shown;
+    in property <int> spin-count;
+    in property <bool> percent-mode;
+    callback pin(int);
+    callback refresh();
+    callback set-percent-mode(bool);
+    callback dismiss();
+    // Высоту окна Rust считает так же: 104 + 82 * n + 48
+    property <length> panel-h: 104px + rows.length * 82px;
+    no-frame: true;
+    always-on-top: true;
+    background: transparent;
+    title: "Battery";
+    width: 384px;
+    height: panel-h + 48px;
+
+    FocusScope {
+        init => { self.focus(); }
+        key-pressed(event) => { if (event.text == Key.Escape) { root.dismiss(); accept } else { reject } }
+    }
+    Rectangle {
+        x: 12px;
+        y: root.shown ? 36px : 60px;
+        width: root.width - 24px;
+        height: panel-h;
+        opacity: root.shown ? 1.0 : 0.0;
+        animate y { duration: 420ms; easing: cubic-bezier(0.1, 0.9, 0.2, 1); }
+        animate opacity { duration: 220ms; }
+        background: #2b2b2b;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: #ffffff17;
+        drop-shadow-blur: 24px;
+        drop-shadow-color: #00000080;
+        drop-shadow-offset-y: 8px;
+        VerticalLayout {
+            padding: 12px;
+            spacing: 4px;
+            HorizontalLayout {
+                height: 36px;
+                padding-left: 10px;
+                Text { text: "Батареи"; color: #ffffff; font-size: 14px; font-weight: 600; vertical-alignment: center; }
+                Rectangle {
+                    width: 32px;
+                    Rectangle {
+                        width: 32px; height: 32px; border-radius: 6px;
+                        background: refresh-touch.has-hover ? #ffffff14 : transparent;
+                        Image {
+                            width: 18px; height: 18px; source: @image-url("../assets/refresh-cw.svg"); colorize: #ffffff;
+                            rotation-angle: root.spin-count * 360deg;
+                            animate rotation-angle { duration: 800ms; easing: cubic-bezier(0.5, 0, 0.2, 1); }
+                        }
+                        refresh-touch := TouchArea { clicked => { root.refresh(); } }
+                    }
+                }
+            }
+            for r[i] in root.rows: DeviceItem {
+                row: r; index: i; shown: root.shown;
+                pin => { root.pin(i); }
+            }
+            HorizontalLayout {
+                height: 40px;
+                padding-left: 10px;
+                Text { text: "Мини-иконка в трее"; color: #c4c4c4; font-size: 12px; vertical-alignment: center; }
+                Rectangle {
+                    width: 134px;
+                    Rectangle {
+                        width: 134px; height: 28px; border-radius: 6px; background: #ffffff14;
+                        HorizontalLayout {
+                            padding: 2px;
+                            Rectangle {
+                                border-radius: 5px; background: !root.percent-mode ? #ffffff : transparent;
+                                Text { text: "Полоска"; font-size: 12px; color: !root.percent-mode ? #1f1f1f : #c4c4c4; }
+                                TouchArea { clicked => { root.set-percent-mode(false); } }
+                            }
+                            Rectangle {
+                                border-radius: 5px; background: root.percent-mode ? #ffffff : transparent;
+                                Text { text: "Число"; font-size: 12px; color: root.percent-mode ? #1f1f1f : #c4c4c4; }
+                                TouchArea { clicked => { root.set-percent-mode(true); } }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
